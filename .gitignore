@@ -1,3 +1,9 @@
+# data directory for real data
+data/
+# doit database
+.doit.db
+# vi swp files
+*.swp
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
