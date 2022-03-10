@@ -19,7 +19,7 @@ def dtypes_reduce(data_frame, coltypes: List[str]) -> List[str]:
             raise ValueError(f"weird type: {dtype}")
     return coltypes
 
-def make_ddl(input_filename: str, tablename: str, output_filename: str):
+def run(input_filename: str, tablename: str, output_filename: str):
     """Read the csv, write the ddl."""
     coltypes: List[str] = []
     df_sample = None
@@ -36,4 +36,4 @@ def make_ddl(input_filename: str, tablename: str, output_filename: str):
         output_file.write("\n")
 
 if __name__ == '__main__':
-    make_ddl('sample-data/sample_df.csv', 'sample', 'sample-data/sample.ddl')
+    run('sample-data/sample_df.csv', 'sample', 'sample-data/sample.ddl')
