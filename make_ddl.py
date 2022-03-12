@@ -19,7 +19,7 @@ def dtypes_reduce(data_frame, coltypes: List[str]) -> List[str]:
             raise ValueError(f"weird type: {dtype}")
     return coltypes
 
-def run(input_filename: str, tablename: str, output_filename: str):
+def run(input_filename: str, tablename: str, output_filename: str) -> None:
     """Read the csv, write the ddl."""
     coltypes: List[str] = []
     df_sample = None
