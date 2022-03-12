@@ -2,7 +2,7 @@
 # pylint: disable=line-too-long
 import time
 from typing import Any, Dict
-import rescore, classify, make_ddl
+import fit, rescore, classify, make_ddl
 
 DOIT_CONFIG: Dict[str, str] = {
     'backend': 'json',
@@ -20,6 +20,23 @@ def archive_ts() -> str:
     """A string for archived versions"""
     return time.strftime("%Y%m%d%H%M%S")
 
+
+LABEL_FILE = DATA_DIR + '/sample-labeled-scores.csv'
+MODEL_FILE = DATA_DIR + '/sample-model.pkl'
+
+def task_fit() -> Dict[str, Any]:
+    """Read labeled training, fit a model, and save it."""
+    version: int = 1
+    return {
+        'actions': [
+            (fit.run, [LABEL_FILE, MODEL_FILE]),
+            lambda: {VERSION_KEY: version}
+        ],
+        'file_dep': [LABEL_FILE],
+        'targets': [MODEL_FILE],
+        'uptodate': [ (version_unchanged, [version]) ],
+        'verbosity': 2
+    }
 
 CHUNK_SIZE = 10000
 LEFT_FILE = DATA_DIR + '/sample-left.csv'
@@ -43,7 +60,6 @@ def task_rescore() -> Dict[str, Any]:
 
 
 SCORE_FILE = DATA_DIR + '/sample-scores.csv'
-MODEL_FILE = DATA_DIR + '/sample-model.pkl'
 THRESHOLD = 0.5
 PREDICTION_FILE = DATA_DIR + '/sample-predictions.csv'
 
