@@ -2,8 +2,7 @@
 # pylint: disable=line-too-long
 import time
 from typing import Any, Dict
-import classify
-import make_ddl
+import rescore, classify, make_ddl
 
 DOIT_CONFIG: Dict[str, str] = {
     'backend': 'json',
@@ -21,8 +20,29 @@ def archive_ts() -> str:
     """A string for archived versions"""
     return time.strftime("%Y%m%d%H%M%S")
 
-SCORE_FILE = DATA_DIR + '/sample-scores.csv'
+
 CHUNK_SIZE = 10000
+LEFT_FILE = DATA_DIR + '/sample-left.csv'
+RIGHT_FILE = DATA_DIR + '/sample-right.csv'
+CANDIDATES_FILE = DATA_DIR + '/sample-candidates.csv'
+SCORE_FILE = DATA_DIR + '/sample-scores.csv'
+
+def task_rescore() -> Dict[str, Any]:
+    """Read candidates, decorate, score again, write all scores."""
+    version: int = 2
+    return {
+        'actions': [
+            (rescore.run, [CANDIDATES_FILE, CHUNK_SIZE, LEFT_FILE, RIGHT_FILE, SCORE_FILE]),
+            lambda: {VERSION_KEY: version}
+        ],
+        'file_dep': [CANDIDATES_FILE, LEFT_FILE, RIGHT_FILE],
+        'targets': [SCORE_FILE],
+        'uptodate': [ (version_unchanged, [version]) ],
+        'verbosity': 2
+    }
+
+
+SCORE_FILE = DATA_DIR + '/sample-scores.csv'
 MODEL_FILE = DATA_DIR + '/sample-model.pkl'
 THRESHOLD = 0.5
 PREDICTION_FILE = DATA_DIR + '/sample-predictions.csv'
