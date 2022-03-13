@@ -57,14 +57,6 @@ def filtered_read(left_filename: str, column_filter: Optional[List[str]] = None,
         left_df = pd.concat([left_df, left_df_chunk])
     return left_df
 
-def corrected_similarity(overlap: OverlapCoefficient, left: str, right: str):
-    """Overlap Coefficient for two empty strings is 1.0 which will surely confuse the model."""
-    if len(left) == 0:
-        return 0.0
-    if len(right) == 0:
-        return 0.0
-    return overlap.similarity(left, right)
-
 def worker_fn(chunk: pd.DataFrame,
               scores_columns: List[str],
               scores_filename: str) -> int:
@@ -82,13 +74,13 @@ def worker_fn(chunk: pd.DataFrame,
         right_1 = preprocessor(str(row['Partner_Name']))
         right_2 = preprocessor(str(row['DBA']))
 
-        chunk.at[idx, 'overlap11'] = corrected_similarity(overlap, left_1, right_1)
+        chunk.at[idx, 'overlap11'] = overlap.similarity(left_1, right_1)
         chunk.at[idx, 'ratio11'] = fuzz.token_set_ratio(left_1, right_1)/100
-        chunk.at[idx, 'overlap12'] = corrected_similarity(overlap, left_1, right_2)
+        chunk.at[idx, 'overlap12'] = overlap.similarity(left_1, right_2)
         chunk.at[idx, 'ratio12'] = fuzz.token_set_ratio(left_1, right_2)/100
-        chunk.at[idx, 'overlap21'] = corrected_similarity(overlap, left_2, right_1)
+        chunk.at[idx, 'overlap21'] = overlap.similarity(left_2, right_1)
         chunk.at[idx, 'ratio21'] = fuzz.token_set_ratio(left_2, right_1)/100
-        chunk.at[idx, 'overlap22'] = corrected_similarity(overlap, left_2, right_2)
+        chunk.at[idx, 'overlap22'] = overlap.similarity(left_2, right_2)
         chunk.at[idx, 'ratio22'] = fuzz.token_set_ratio(left_2, right_2)/100
 
     with open(scores_filename, 'a', encoding='utf8') as scores_f:
