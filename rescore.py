@@ -3,7 +3,7 @@ Rescore candidates in parallel.
 
 Loads candidates and left and right documents, all in RAM.
 
-Scans the candidates, doing lookups in the left and right,
+Scans the candidates, does lookup joins on the left and right,
 and sends batches of joined rows to the workers.
 
 TODO: sort and parallel scan the left table and the candidates to avoid
@@ -67,10 +67,14 @@ def corrected_similarity(overlap: OverlapCoefficient, left: str, right: str):
 
 def worker_fn(chunk: pd.DataFrame,
               scores_columns: List[str],
-              scores_filename: str) -> None:
-    """Add some columns to the chunk and then write the specified columns.
-    TODO: DRY scores_columns somehow, e.g. with a dictionary of callables or something?
-    """
+              scores_filename: str) -> int:
+    """Add some columns to the chunk and then write the specified columns."""
+    #TODO: DRY scores_columns somehow, e.g. with a dictionary of callables or something?
+    # maybe since this is just the cartesian product i can just use lists.
+    # methods = List[Callable[[str, str], float]
+    # left_fields = List[str]
+    # right_fields = List[str]
+    # or something like that?  maybe it's ok as is though.
     overlap = OverlapCoefficient(k=3)
     for idx, row in chunk.iterrows():
         left_1 = preprocessor(str(row['Supplier']))
@@ -88,11 +92,12 @@ def worker_fn(chunk: pd.DataFrame,
         chunk.at[idx, 'ratio22'] = fuzz.token_set_ratio(left_2, right_2)/100
 
     with open(scores_filename, 'a', encoding='utf8') as scores_f:
-        chunk.to_csv(scores_f, columns=scores_columns, index=False, header=False)
+        chunk.to_csv(scores_f, columns=scores_columns, header=False)
         scores_f.flush()
     print(f"worker {os.getpid()} finished "
           f"RSS (GB) {psutil.Process(os.getpid()).memory_info().rss/1e9:5.2f} "
           f"start {min(chunk.index):10d} end {max(chunk.index):10d}")
+    return len(chunk)
 
 # TODO: externalize these
 LEFT_COLS = ['Supplier', 'Invoice_Ship_to_Address']
@@ -114,8 +119,10 @@ def run(candidate_filename: str, chunk_size: int, left_filename: str, right_file
     and hand them to the workers for processing."""
     simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
     left_table: pd.DataFrame = filtered_read(left_filename, column_filter=LEFT_COLS, nrows=100000,
-                                             skiprows=None, row_filter_cols=['Fiscal_Year'],
-                                             row_filter=lambda x: x['Fiscal_Year']=='2020')
+                                             skiprows=None, row_filter_cols=None,
+                                             #skiprows=None, row_filter_cols=['Fiscal_Year'],
+                                             #row_filter=lambda x: x['Fiscal_Year']=='2020')
+                                             row_filter=None)
     right_table: pd.DataFrame = filtered_read(right_filename, column_filter=RIGHT_COLS)
 
     candidate_columns: List[str] = list(pd.read_csv(candidate_filename, nrows=0).columns)
@@ -134,7 +141,9 @@ def run(candidate_filename: str, chunk_size: int, left_filename: str, right_file
             chunk = chunk.merge(right_table, left_on='right_index', right_index=True, how='left')
             chunk = chunk[LEFT_COLS + RIGHT_COLS + candidate_columns]
 
-            pool.apply_async(worker_fn, (chunk, scores_columns, scores_filename))
+            pool.apply_async(worker_fn, (chunk, scores_columns, scores_filename),
+                             callback=lambda x: print(f"worker rows written: {x:10d}"),
+                             error_callback=lambda x: print(f"error: {x}"))
             # avoid over-filling the queue
             while pool._taskqueue.qsize() > 12: # type:ignore
                 time.sleep(1)

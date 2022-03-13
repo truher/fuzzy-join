@@ -12,7 +12,7 @@ import pandas as pd # type:ignore
 import lib
 
 def worker_fn(model_file: str, threshold: float,
-              scores_chunk_df: pd.DataFrame, output_file: str) -> None:
+              scores_chunk_df: pd.DataFrame, output_file: str) -> int:
     """Accept a chunk from the main reader, map each row, and append to the output."""
     x_data = scores_chunk_df.drop(columns=scores_chunk_df.columns[0:2])
     predictions = scores_chunk_df.loc[:,['left_index','right_index']]
@@ -24,6 +24,7 @@ def worker_fn(model_file: str, threshold: float,
     with open(output_file, 'a', encoding='utf8') as output_f:
         predictions.to_csv(output_f, float_format='%.4f', index=False, header=False)
         output_f.flush()
+    return len(predictions)
 
 def run(input_file: str, chunk_size: int,
         model_file: str, threshold: float,
@@ -33,16 +34,17 @@ def run(input_file: str, chunk_size: int,
 
     ctx = multiprocessing.get_context('spawn')
     with ctx.Pool(processes = 6) as pool:
-        # use apply() instead of map() because map exhausts the iterator to find length
-        for chunk in pd.read_csv(input_file, index_col=0, chunksize=chunk_size):
-            pool.apply_async(worker_fn, (model_file, threshold, chunk, output_file))
-            # avoid over-filling the queue
+        for chunk in pd.read_csv(input_file, chunksize=chunk_size):
+            pool.apply_async(worker_fn, (model_file, threshold, chunk, output_file),
+                             callback=lambda x: print(f"worker rows written: {x:10d}"),
+                             error_callback=lambda x: print(f"error: {x}"))
             while pool._taskqueue.qsize() > 12: # type:ignore
                 time.sleep(1)
         pool.close()
         pool.join()
 
 if __name__ == '__main__':
-    run('sample-data/scores.csv', 10000,
-        'sample-data/sample-model.pkl', 0.5,
-        'sample-data/predictions.csv')
+    run('sample-data/sample-scores.csv', 10000,
+        'sample-data/sample-model.pkl',
+        0.5,
+        'sample-data/sample-predictions.csv')

@@ -28,12 +28,14 @@ def run(labeled_score_file: str, model_file: str) -> None:
     print("  FN   TP")
     print(cm)
 
-    tn, fp, fn, tp = cm.ravel()
-    print(f"precision {tp/(tp+fp):.3f} recall {tp/(tp+fn):.3f}")
-    print(f"false positive rate {fp/(tn+fp):.3f} false negative rate {fn/(tp+fn):.3f}")
+    ravel = cm.ravel()
+    if len(ravel) == 4:
+        tn, fp, fn, tp = ravel
+        print(f"precision {tp/(tp+fp):.3f} recall {tp/(tp+fn):.3f}")
+        print(f"false positive rate {fp/(tn+fp):.3f} false negative rate {fn/(tp+fn):.3f}")
 
     with open(model_file, 'wb') as model_f:
         pickle.dump(model, model_f)
 
 if __name__ == '__main__':
-    run('data/labeled-scores.csv', 'data/model2.pkl')
+    run('sample-data/sample-labeled-scores.csv', 'sample-data/sample-model.pkl')

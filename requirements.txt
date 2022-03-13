@@ -2,3 +2,7 @@ doit
 numpy
 pandas
 pygam
+usaddress
+thefuzz
+strsimpy
+python-Levenshtein

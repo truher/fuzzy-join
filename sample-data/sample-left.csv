@@ -1,0 +1,5 @@
+,Supplier,Invoice_Ship_to_Address,Field1,Field2
+0,Foo Company,FooCo 1234 Fooco St. Foo CA,Extra Bar,Extra Baz
+1,Foo Company,FooCo 1234 Fooco St. Foo CA,Extra Bar,Extra Baz
+3,Foo Company,FooCo 1234 Fooco St. Foo CA,Extra Bar,Extra Baz
+4,Bar Company,,Extra Bar,Extra Baz
